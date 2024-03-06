@@ -74,36 +74,42 @@ predict_button.grid(row=len(input_labels), column=0, columnspan=2, pady=10)
 def predict_quality(entry_boxes):
     # Get user input from entry boxes
     user_input = [entry.get() for entry in entry_boxes]
-
+    
     # Make predictions using the Voting Classifier
     predictions = Ensemble.Voting.voting_clf.predict([user_input])
+    
+    # Get individual predictions from each classifier
+    individual_predictions = {
+        'Random Forest': Ensemble.Voting.random_forest_model.predict([user_input])[0],
+        'Logistic': Ensemble.Voting.logistic_model.predict([user_input])[0],
+        'Naive Bayes': Ensemble.Voting.naive_bayes_model.predict([user_input])[0],
+        'SVM': Ensemble.Voting.svm_model.predict([user_input])[0],
+        'Decision Tree': Ensemble.Voting.decision_tree_model.predict([user_input])[0],
+        'MLP': Ensemble.Voting.mlp_model.predict([user_input])[0],
+        'AdaBoost': Ensemble.Voting.adaboost_model.predict([user_input])[0]
+    }
 
-    # Map numeric predictions
-    predicted_label = 'Low' if predictions[0] == 1 else 'High'
+    # Count the number of 'Good' and 'Bad' predictions
+    good_count = sum(1 for label in individual_predictions.values() if label == 1)
+    bad_count = sum(1 for label in individual_predictions.values() if label == 0)
 
+    # Update the display based on the majority vote
+    if good_count >= 4:
+        predicted_label = 'low'
+    elif bad_count >= 4:
+        predicted_label = 'high'
+    else:
+        predicted_label = 'Undecided'  # You can customize this based on your preference
+    
     # Display the predicted quality
-    result_label["text"] = f"Predicted Quality = {predicted_label}"
-    result_label["bg"] = "#FAEBD7"
-    result_label["font"] = ("Arial", 15, "bold")
+    result_label["text"] = f"Predicted Quality: {predicted_label}"
 
     # Display accuracy information for each classifier
     accuracy_labels["text"] = ""
-    for model, model_instance in zip(
-        ['Bagging', 'Boosting', 'Random Forest', 'Logistic', 'Naive Bayes', 'SVM', 'Decision Tree', 'MLP', 'AdaBoost'],
-        [Ensemble.Voting.bagging_clf, Ensemble.Voting.boosting_clf, Ensemble.Voting.random_forest_model,
-        Ensemble.Voting.logistic_model,
-        Ensemble.Voting.naive_bayes_model, Ensemble.Voting.svm_model, Ensemble.Voting.decision_tree_model,
-        Ensemble.Voting.mlp_model, Ensemble.Voting.adaboost_model]):
-        predictions = model_instance.predict(Ensemble.Voting.X)
-        accuracy = accuracy_score(Ensemble.Voting.y, predictions) * 100
-        
-        # เปลี่ยนเป็น Low หรือ High ตามค่าความแม่นยำ
-        accuracy_text = "High" if accuracy >= 80 else "Low"
-        
-        accuracy_labels["text"] += f"{model} Accuracy : {accuracy_text}\n"
-        accuracy_labels["fg"] = "green" if accuracy >= 80 else "red"  # Color the text based on accuracy
-        accuracy_labels["bg"] = '#FAEBD7'
-        accuracy_labels["justify"] = "left"
+    for model, prediction in individual_predictions.items():
+        accuracy_label = 'low' if prediction == 1 else 'high'
+        accuracy_labels["text"] += f"{model} Prediction: {accuracy_label}\n"
+
 
 # Create a label to display the predicted quality
 result_label = tk.Label(left_frame, text="", font=("Arial", 18))
